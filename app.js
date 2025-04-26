@@ -12,8 +12,23 @@ app.get("/",(req,res)=>{
 
 
 
-// In-memory data
-const users = {};     // { username: { password } }
+
+const users = {};     
+const sessions = {};  
+const tasks = {};  //for tasks
+
+function authMiddleware(req, res, next) {
+  // Get token from the request header and Find the username from the token
+  const token = req.headers['authorization']; 
+  const username = sessions[token]; 
+
+  if (!username) {
+    return res.status(403).json({ message: "Invalid or missing token" });
+  }
+
+  req.username = username; // Attach the username to the request for further use
+  next(); // Proceed to the next middleware 
+}
 
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
@@ -40,9 +55,36 @@ app.post('/login', (req, res) => {
   }
  //creating token
   const token = uuidv4();
-
+  sessions[token] = username;  // 👈 Store the token in sessions
 
   res.json({ message: "Login successful", token });
+});
+
+// Add task
+app.post('/tasks', authMiddleware, (req, res) => {
+  const { task } = req.body;
+  
+  if (!task) {
+    return res.status(400).json({ message: "Task is required" });
+  }
+  const taskObject = {
+    id: uuidv4(),
+    task: task
+  };
+
+  if (!tasks[req.username]) {
+    tasks[req.username] = [];
+  }
+
+  tasks[req.username].push(taskObject);
+
+  res.json({ message: "Task added successfully", task: taskObject });
+});
+
+// View Tasks Route
+app.get('/tasks', authMiddleware, (req, res) => {
+  const userTasks = tasks[req.username] || [];
+  res.json({ tasks: userTasks });
 });
 
 app.listen(port,()=>{
