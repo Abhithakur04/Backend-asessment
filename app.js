@@ -87,6 +87,29 @@ app.get('/tasks', authMiddleware, (req, res) => {
   res.json({ tasks: userTasks });
 });
 
+
+// Delete Task Route
+app.delete('/tasks/:taskId', authMiddleware, (req, res) => {
+  const { taskId } = req.params;
+
+  if (!taskId) {
+    return res.status(400).json({ message: "Task ID is required" });
+  }
+
+  const userTaskList = tasks[req.username] || [];
+
+  const index = userTaskList.findIndex(t => t.id === taskId);
+
+  if (index === -1) {
+    return res.status(404).json({ message: "Task not found" });
+  }
+
+  userTaskList.splice(index, 1);
+
+  res.json({ message: "Task deleted successfully" });
+});
+
+
 app.listen(port,()=>{
   console.log(`Server Listening on port ${port}`);
 })
